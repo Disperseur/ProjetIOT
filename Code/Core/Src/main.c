@@ -50,11 +50,11 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 // application router ID (LSBF) < ------- IMPORTANT
-static const u1_t APPEUI[8] = {0};
+static const u1_t APPEUI[8] = {0x67, 0x09, 0x00, 0x00, 0x00, 0x5A, 0x55, 0xAA};
 // unique device ID (LSBF) < ------- IMPORTANT
-static const u1_t DEVEUI[8] = {0};
+static const u1_t DEVEUI[8] = {0xC2, 0xBB, 0x04, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
 // device-specific AES key (derived from device EUI (MSBF))
-static const u1_t DEVKEY[16] = {0};
+static const u1_t DEVKEY[16] = {0xB3, 0x4C, 0xBD, 0xE6, 0x25, 0xE6, 0xE2, 0x74, 0xDF, 0x6C, 0x89, 0x84, 0xF1, 0x54, 0x85, 0x1B};
 
 
 //APPEUI,DEVEUI must be copied from thethingsnetwork application datas in LSB format
