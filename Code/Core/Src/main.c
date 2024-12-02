@@ -57,6 +57,7 @@ static const u1_t DEVEUI[8] = {0xC2, 0xBB, 0x04, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
 static const u1_t DEVKEY[16] = {0xB3, 0x4C, 0xBD, 0xE6, 0x25, 0xE6, 0xE2, 0x74, 0xDF, 0x6C, 0x89, 0x84, 0xF1, 0x54, 0x85, 0x1B};
 
 
+
 //APPEUI,DEVEUI must be copied from thethingsnetwork application datas in LSB format
 //-----------------------------------------------------------------------------------------
 /* USER CODE END PV */
@@ -150,10 +151,14 @@ void onEvent (ev_t ev) {
 	// network joined, session established
 		case EV_JOINING:
 			debug_str("try joining\r\n");
+			blinkfunc(&blinkjob);
 			break;
+
 		case EV_JOINED:
 			// kick-off periodic sensor job
-			reportfunc(&reportjob);
+			os_clearCallback(&blinkjob);
+			debug_led(1);
+//			reportfunc(&reportjob);
 			break;
 //		case EV_JOIN_FAILED:
 //			debug_str("join failed\r\n");
@@ -250,8 +255,8 @@ int main(void)
   // initialize debug library
   debug_init();
   // setup initial job
-  // os_setCallback(&initjob, initfunc);
-  os_setCallback(&hellojob, hellofunc);
+  os_setCallback(&initjob, initfunc);
+//  os_setCallback(&hellojob, hellofunc);
   // execute scheduled jobs and events
   os_runloop();
   // (not reached)
