@@ -150,10 +150,14 @@ void onEvent (ev_t ev) {
 	// network joined, session established
 		case EV_JOINING:
 			debug_str("try joining\r\n");
+			blinkfunc(&blinkjob);
 			break;
+
 		case EV_JOINED:
 			// kick-off periodic sensor job
-			reportfunc(&reportjob);
+			os_clearCallback(&blinkjob);
+			debug_led(1);
+//			reportfunc(&reportjob);
 			break;
 //		case EV_JOIN_FAILED:
 //			debug_str("join failed\r\n");
@@ -250,8 +254,8 @@ int main(void)
   // initialize debug library
   debug_init();
   // setup initial job
-  // os_setCallback(&initjob, initfunc);
-  os_setCallback(&hellojob, hellofunc);
+  os_setCallback(&initjob, initfunc);
+//  os_setCallback(&hellojob, hellofunc);
   // execute scheduled jobs and events
   os_runloop();
   // (not reached)

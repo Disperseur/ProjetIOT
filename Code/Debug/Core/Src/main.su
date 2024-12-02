@@ -8,6 +8,6 @@
 ../Core/Src/main.c:120:13:hellofunc	16	static
 ../Core/Src/main.c:135:13:blinkfunc	16	static
 ../Core/Src/main.c:147:6:onEvent	16	static
-../Core/Src/main.c:216:5:main	24	static
-../Core/Src/main.c:276:6:SystemClock_Config	96	static
-../Core/Src/main.c:330:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:220:5:main	24	static
+../Core/Src/main.c:280:6:SystemClock_Config	96	static
+../Core/Src/main.c:334:6:Error_Handler	4	static,ignoring_inline_asm
