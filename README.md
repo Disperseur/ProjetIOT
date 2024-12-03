@@ -11,3 +11,11 @@ mdp: hCaC@IOT@24
 
 Nom de l'application: Appli_Projet_IOT
 ID: appliprojetiot
+
+
+
+Datacake: https://app.datacake.de/mines-de-saint-etiennes/devices
+Data site: datahcac
+Token: Token1
+email: hugo.celarie@etu.emse.frs
+mdp: IOT-Pojet-AC_hc_2024
