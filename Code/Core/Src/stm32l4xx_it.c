@@ -55,7 +55,9 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern ADC_HandleTypeDef hadc1;
 extern SPI_HandleTypeDef hspi3;
+extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim7;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
@@ -201,17 +203,17 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles EXTI line0 interrupt.
+  * @brief This function handles ADC1 global interrupt.
   */
-void EXTI0_IRQHandler(void)
+void ADC1_IRQHandler(void)
 {
-  /* USER CODE BEGIN EXTI0_IRQn 0 */
+  /* USER CODE BEGIN ADC1_IRQn 0 */
 
-  /* USER CODE END EXTI0_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(TEMP_Pin);
-  /* USER CODE BEGIN EXTI0_IRQn 1 */
+  /* USER CODE END ADC1_IRQn 0 */
+  HAL_ADC_IRQHandler(&hadc1);
+  /* USER CODE BEGIN ADC1_IRQn 1 */
 
-  /* USER CODE END EXTI0_IRQn 1 */
+  /* USER CODE END ADC1_IRQn 1 */
 }
 
 /**
@@ -255,6 +257,20 @@ void SPI3_IRQHandler(void)
   /* USER CODE BEGIN SPI3_IRQn 1 */
 
   /* USER CODE END SPI3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM6 global interrupt, DAC channel1 and channel2 underrun error interrupts.
+  */
+void TIM6_DAC_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
+
+  /* USER CODE END TIM6_DAC_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim6);
+  /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
+
+  /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 
 /**

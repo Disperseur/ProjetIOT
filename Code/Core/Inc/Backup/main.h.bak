@@ -59,9 +59,6 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define Alim_temp_Pin GPIO_PIN_7
 #define Alim_temp_GPIO_Port GPIOA
-#define TEMP_Pin GPIO_PIN_0
-#define TEMP_GPIO_Port GPIOB
-#define TEMP_EXTI_IRQn EXTI0_IRQn
 #define LED_Pin GPIO_PIN_1
 #define LED_GPIO_Port GPIOB
 #define RST_Pin GPIO_PIN_11

@@ -35,6 +35,7 @@
 #include "main.h"
 #include "tim.h"
 #include "spi.h"
+#include "adc.h"
 
 #define myTIMER htim7   //  <--------- change to your setup
 #define mySPI hspi3     //  <--------- change to your setup
@@ -49,6 +50,7 @@ static struct {
 	int irqlevel;
     u4_t ticks;
 } HAL;
+
 
 // -----------------------------------------------------------------------------
 // I/O
@@ -177,10 +179,14 @@ u1_t hal_checkTimer (u4_t time) {
     }
 }
 
+//Callback deja renseigne dans le main.c
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if(htim->Instance == myTIMER.Instance){
 		HAL.ticks++;
     }
+
+	if(htim == &htim6) HAL_ADC_Start_IT(&hadc1);
+
 }
 
 // -----------------------------------------------------------------------------

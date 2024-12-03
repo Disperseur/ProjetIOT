@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -37,7 +38,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define TEMP_OFFSET 10000 //deg*1000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -57,6 +58,8 @@ static const u1_t DEVEUI[8] = {0xC2, 0xBB, 0x04, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
 static const u1_t DEVKEY[16] = {0xB3, 0x4C, 0xBD, 0xE6, 0x25, 0xE6, 0xE2, 0x74, 0xDF, 0x6C, 0x89, 0x84, 0xF1, 0x54, 0x85, 0x1B};
 
 
+volatile int raw_adc1_in15 = 0;
+volatile float temp = 0;
 
 //APPEUI,DEVEUI must be copied from thethingsnetwork application datas in LSB format
 //-----------------------------------------------------------------------------------------
@@ -83,7 +86,8 @@ void os_getDevKey (u1_t* buf) {
 	memcpy(buf, DEVKEY, 16);
 }
 void initsensor(){
-// Here you init your sensors
+	HAL_GPIO_WritePin(Alim_temp_GPIO_Port, Alim_temp_Pin, GPIO_PIN_SET); //alimente le capteur de temperature
+
 }
 
 void initfunc (osjob_t* j) {
@@ -95,20 +99,23 @@ void initfunc (osjob_t* j) {
 	LMIC_startJoining();
 	// init done - onEvent() callback will be invoked...
 }
-u2_t readsensor(){
-	u2_t value = 0xDF; /// read from evrything ...make your own sensor
-	return value;
+int readsensor_temp(){
+	return  (188686-147 * raw_adc1_in15);
 }
 
 static osjob_t reportjob;
 // report sensor value every minute
 static void reportfunc (osjob_t* j) {
 	// read sensor
-	u2_t val = readsensor();
-	debug_val("val = ", val);
+	int val = readsensor_temp() - TEMP_OFFSET;
+	debug_valdec("val = ", val);
+
 	// prepare and schedule data for transmission
-	LMIC.frame[0] = val << 8;
-	LMIC.frame[1] = val;
+	LMIC.frame[0] = 0;
+	LMIC.frame[1] = 0x67; //adresse capteur
+
+	LMIC.frame[2] = val; //valeur capteur
+
 	LMIC_setTxData2(1, LMIC.frame, 2, 0); // (port 1, 2 bytes, unconfirmed)
 	// reschedule job in 60 seconds
 	os_setTimedCallback(j, os_getTime()+sec2osticks(15), reportfunc);
@@ -158,55 +165,58 @@ void onEvent (ev_t ev) {
 			// kick-off periodic sensor job
 			os_clearCallback(&blinkjob);
 			debug_led(1);
-//			reportfunc(&reportjob);
+			reportfunc(&reportjob);
 			break;
-//		case EV_JOIN_FAILED:
-//			debug_str("join failed\r\n");
-//			break;
-//		case EV_SCAN_TIMEOUT:
-//			debug_str("EV_SCAN_TIMEOUT\r\n");
-//			break;
-//		case EV_BEACON_FOUND:
-//			debug_str("EV_BEACON_FOUND\r\n");
-//			break;
-//		case EV_BEACON_MISSED:
-//			debug_str("EV_BEACON_MISSED\r\n");
-//			break;
-//		case EV_BEACON_TRACKED:
-//			debug_str("EV_BEACON_TRACKED\r\n");
-//			break;
-//		case EV_RFU1:
-//			debug_str("EV_RFU1\r\n");
-//			break;
-//		case EV_REJOIN_FAILED:
-//			debug_str("EV_REJOIN_FAILED\r\n");
-//			break;
-//		case EV_TXCOMPLETE:
-//			debug_str("EV_TXCOMPLETE (includes waiting for RX windows)\r\n");
-//			if (LMIC.txrxFlags & TXRX_ACK)
-//				debug_str("Received ack\r\n");
-//			if (LMIC.dataLen) {
+		case EV_JOIN_FAILED:
+			debug_str("join failed\r\n");
+			break;
+		case EV_SCAN_TIMEOUT:
+			debug_str("EV_SCAN_TIMEOUT\r\n");
+			break;
+		case EV_BEACON_FOUND:
+			debug_str("EV_BEACON_FOUND\r\n");
+			break;
+		case EV_BEACON_MISSED:
+			debug_str("EV_BEACON_MISSED\r\n");
+			break;
+		case EV_BEACON_TRACKED:
+			debug_str("EV_BEACON_TRACKED\r\n");
+			break;
+		case EV_RFU1:
+			debug_str("EV_RFU1\r\n");
+			break;
+		case EV_REJOIN_FAILED:
+			debug_str("EV_REJOIN_FAILED\r\n");
+			break;
+		case EV_TXCOMPLETE:
+			debug_str("EV_TXCOMPLETE (includes waiting for RX windows)\r\n");
+			if (LMIC.txrxFlags & TXRX_ACK)
+				debug_str("Received ack\r\n");
+			if (LMIC.dataLen) {
+				debug_valdec("Received bytes of payload\r\n:",LMIC.dataLen);
+				debug_val("Data = :",LMIC.frame[LMIC.dataBeg]);
+				debug_led(LMIC.frame[LMIC.dataBeg]);
 //				debug_str("Received ");
 //				debug_str(LMIC.dataLen);
 //				debug_str(" bytes of payload\r\n");
-//			}
-//			break;
-//		case EV_LOST_TSYNC:
-//			debug_str("EV_LOST_TSYNC\r\n");
-//			break;
-//		case EV_RESET:
-//			debug_str("EV_RESET\r\n");
-//			break;
-//		case EV_RXCOMPLETE:
-//			// data received in ping slot
-//			debug_str("EV_RXCOMPLETE\r\n");
-//			break;
-//		case EV_LINK_DEAD:
-//			debug_str("EV_LINK_DEAD\r\n");
-//			break;
-//		case EV_LINK_ALIVE:
-//			debug_str("EV_LINK_ALIVE\r\n");
-//			break;
+			}
+			break;
+		case EV_LOST_TSYNC:
+			debug_str("EV_LOST_TSYNC\r\n");
+			break;
+		case EV_RESET:
+			debug_str("EV_RESET\r\n");
+			break;
+		case EV_RXCOMPLETE:
+			// data received in ping slot
+			debug_str("EV_RXCOMPLETE\r\n");
+			break;
+		case EV_LINK_DEAD:
+			debug_str("EV_LINK_DEAD\r\n");
+			break;
+		case EV_LINK_ALIVE:
+			debug_str("EV_LINK_ALIVE\r\n");
+			break;
 		default:
 			debug_str("Unknown event\r\n");
 			break;
@@ -246,7 +256,10 @@ int main(void)
   MX_SPI3_Init();
   MX_TIM7_Init();
   MX_USART1_UART_Init();
+  MX_TIM6_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start_IT(&htim6); //demarrage du timer 6 en interruption toutes les secondes pour la mesure temperature
   HAL_TIM_Base_Start_IT(&htim7);   // <----------- change to your setup
   __HAL_SPI_ENABLE(&hspi3);        // <----------- change to your setup
   osjob_t initjob;
@@ -293,14 +306,13 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
-  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-  RCC_OscInitStruct.MSICalibrationValue = 0;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 40;
+  RCC_OscInitStruct.PLL.PLLN = 10;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV7;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
@@ -325,7 +337,20 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+//{
+//	if(htim == &htim6) HAL_ADC_Start_IT(&hadc1);
+//
+//	if(htim->Instance == htim7.Instance){
+//		HAL.ticks++;
+//	}
+//}
 
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+	raw_adc1_in15 = HAL_ADC_GetValue(&hadc1);
+}
 /* USER CODE END 4 */
 
 /**
