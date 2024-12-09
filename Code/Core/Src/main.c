@@ -38,7 +38,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define TEMP_OFFSET 10000 //deg*1000
+#define TEMP_OFFSET 0//10000 //deg*1000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -87,7 +87,7 @@ void os_getDevKey (u1_t* buf) {
 }
 void initsensor(){
 	HAL_GPIO_WritePin(Alim_temp_GPIO_Port, Alim_temp_Pin, GPIO_PIN_SET); //alimente le capteur de temperature
-
+	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 }
 
 void initfunc (osjob_t* j) {
@@ -100,7 +100,7 @@ void initfunc (osjob_t* j) {
 	// init done - onEvent() callback will be invoked...
 }
 int readsensor_temp(){
-	return  (188686-147 * raw_adc1_in15);
+	return  (188686 - 147 * raw_adc1_in15);
 }
 
 static osjob_t reportjob;
@@ -111,12 +111,14 @@ static void reportfunc (osjob_t* j) {
 	debug_valdec("val = ", val);
 
 	// prepare and schedule data for transmission
+	val = val / 100; //temperature en 10e de degres
 	LMIC.frame[0] = 0;
 	LMIC.frame[1] = 0x67; //adresse capteur
 
-	LMIC.frame[2] = val; //valeur capteur
+	LMIC.frame[2] = val >> 8; //valeur capteur
+	LMIC.frame[3] = val;
 
-	LMIC_setTxData2(1, LMIC.frame, 2, 0); // (port 1, 2 bytes, unconfirmed)
+	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
 	// reschedule job in 60 seconds
 	os_setTimedCallback(j, os_getTime()+sec2osticks(15), reportfunc);
 }
