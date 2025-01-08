@@ -10352,7 +10352,7 @@ static void reportfunc (osjob_t* j) {
  8004ab8:	2267      	movs	r2, #103	@ 0x67
  8004aba:	f883 2149 	strb.w	r2, [r3, #329]	@ 0x149
 
-	LMIC.frame[2] = val>>8; //valeur capteur
+	LMIC.frame[2] = val >> 8; //valeur capteur
  8004abe:	68fb      	ldr	r3, [r7, #12]
  8004ac0:	121b      	asrs	r3, r3, #8
  8004ac2:	b2da      	uxtb	r2, r3
