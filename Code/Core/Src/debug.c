@@ -28,9 +28,9 @@
 #include "main.h"
 #include "debug.h"
 #include "lmic.h"
-#include "usart.h"
+//#include "usart.h"
 
-#define myUART huart1   //  <--------- change to your setup
+//#define myUART huart1   //  <--------- change to your setup
 
 /*  ************************************** */
 /*    DO NOT CHANGE BELOW THIS LINE        */
@@ -53,7 +53,7 @@ void debug_led (int val) {
 void debug_char (char c) {
   char buffer[] = "";
   buffer[0]= c;
-  HAL_UART_Transmit(&myUART,buffer,sizeof(buffer),HAL_MAX_DELAY);
+//  HAL_UART_Transmit(&myUART,buffer,sizeof(buffer),HAL_MAX_DELAY);
 }
 
 void debug_hex (u1_t b) {

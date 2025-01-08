@@ -21,7 +21,6 @@
 #include "adc.h"
 #include "spi.h"
 #include "tim.h"
-#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -29,6 +28,8 @@
 #include "debug.h"
 #include "oslmic.h"
 #include "lmic.h"
+#include <stdio.h>
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -167,7 +168,11 @@ void onEvent (ev_t ev) {
 			// kick-off periodic sensor job
 			os_clearCallback(&blinkjob);
 			debug_led(1);
-			reportfunc(&reportjob);
+
+
+			reportfunc(&reportjob); //act
+
+
 			break;
 		case EV_JOIN_FAILED:
 			debug_str("join failed\r\n");
@@ -257,7 +262,6 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI3_Init();
   MX_TIM7_Init();
-  MX_USART1_UART_Init();
   MX_TIM6_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
