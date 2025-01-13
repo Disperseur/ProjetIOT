@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -37,7 +38,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define TEMP_OFFSET 0//10000 //deg*1000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -57,6 +58,8 @@ static const u1_t DEVEUI[8] = {0xC2, 0xBB, 0x04, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
 static const u1_t DEVKEY[16] = {0xB3, 0x4C, 0xBD, 0xE6, 0x25, 0xE6, 0xE2, 0x74, 0xDF, 0x6C, 0x89, 0x84, 0xF1, 0x54, 0x85, 0x1B};
 
 
+volatile int raw_adc1_in15 = 0;
+volatile float temp = 0;
 
 //APPEUI,DEVEUI must be copied from thethingsnetwork application datas in LSB format
 //-----------------------------------------------------------------------------------------
@@ -84,7 +87,7 @@ void os_getDevKey (u1_t* buf) {
 }
 void initsensor(){
 	HAL_GPIO_WritePin(Alim_temp_GPIO_Port, Alim_temp_Pin, GPIO_PIN_SET); //alimente le capteur de temperature
-
+	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 }
 
 void initfunc (osjob_t* j) {
@@ -96,21 +99,26 @@ void initfunc (osjob_t* j) {
 	LMIC_startJoining();
 	// init done - onEvent() callback will be invoked...
 }
-u2_t readsensor_temp(){
-	u2_t value = 0xDF; /// read from evrything ...make your own sensor
-	return value;
+int readsensor_temp(){
+	return  (188686 - 147 * raw_adc1_in15);
 }
 
 static osjob_t reportjob;
 // report sensor value every minute
 static void reportfunc (osjob_t* j) {
 	// read sensor
-	u2_t val = readsensor();
-	debug_val("val = ", val);
+	int val = readsensor_temp() - TEMP_OFFSET;
+	debug_valdec("val = ", val);
+
 	// prepare and schedule data for transmission
-	LMIC.frame[0] = val << 8;
-	LMIC.frame[1] = val;
-	LMIC_setTxData2(1, LMIC.frame, 2, 0); // (port 1, 2 bytes, unconfirmed)
+	val = val / 100; //temperature en 10e de degres
+	LMIC.frame[0] = 0;
+	LMIC.frame[1] = 0x67; //adresse capteur
+
+	LMIC.frame[2] = val >> 8; //valeur capteur
+	LMIC.frame[3] = val;
+
+	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
 	// reschedule job in 60 seconds
 	os_setTimedCallback(j, os_getTime()+sec2osticks(15), reportfunc);
 }
@@ -251,6 +259,7 @@ int main(void)
   MX_TIM7_Init();
   MX_USART1_UART_Init();
   MX_TIM6_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6); //demarrage du timer 6 en interruption toutes les secondes pour la mesure temperature
   HAL_TIM_Base_Start_IT(&htim7);   // <----------- change to your setup
@@ -330,7 +339,20 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+//{
+//	if(htim == &htim6) HAL_ADC_Start_IT(&hadc1);
+//
+//	if(htim->Instance == htim7.Instance){
+//		HAL.ticks++;
+//	}
+//}
 
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+	raw_adc1_in15 = HAL_ADC_GetValue(&hadc1);
+}
 /* USER CODE END 4 */
 
 /**
