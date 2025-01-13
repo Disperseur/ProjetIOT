@@ -21,12 +21,10 @@
 #include "adc.h"
 #include "spi.h"
 #include "tim.h"
-#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "debug.h"
 #include "oslmic.h"
 #include "lmic.h"
 /* USER CODE END Includes */
@@ -108,7 +106,6 @@ static osjob_t reportjob;
 static void reportfunc (osjob_t* j) {
 	// read sensor
 	int val = readsensor_temp() - TEMP_OFFSET;
-	debug_valdec("val = ", val);
 
 	// prepare and schedule data for transmission
 	val = val / 100; //temperature en 10e de degres
@@ -124,103 +121,48 @@ static void reportfunc (osjob_t* j) {
 }
 
 
-// counter
-static int cnt = 0;
-static osjob_t hellojob;
-static void hellofunc (osjob_t* j) {
-	// say hello
-	debug_str("hello world!\r\n");
-	// log counter
-	debug_val("cnt = ", cnt);
-	// toggle LED
-	debug_led(++cnt & 1);
-	// reschedule task every second
-	os_setTimedCallback(j, os_getTime()+sec2osticks(1), hellofunc);
-}
 
-
-// blinker
-static osjob_t blinkjob;
-static u1_t ledstate = 0;
-static void blinkfunc (osjob_t* j) {
-	// toggle led
-	ledstate = !ledstate;
-	debug_led(ledstate);
-	// reschedule
-	os_setTimedCallback(j, os_getTime()+ms2osticks(100), blinkfunc);
-}
 
 
 //////////////////////////////////////////////////
 // LMIC EVENT CALLBACK
 //////////////////////////////////////////////////
 void onEvent (ev_t ev) {
-	debug_event(ev);
 	switch(ev) {
 	// network joined, session established
 		case EV_JOINING:
-			debug_str("try joining\r\n");
-			blinkfunc(&blinkjob);
 			break;
 
 		case EV_JOINED:
-			// kick-off periodic sensor job
-			os_clearCallback(&blinkjob);
-			debug_led(1);
 			reportfunc(&reportjob);
 			break;
 		case EV_JOIN_FAILED:
-			debug_str("join failed\r\n");
 			break;
 		case EV_SCAN_TIMEOUT:
-			debug_str("EV_SCAN_TIMEOUT\r\n");
 			break;
 		case EV_BEACON_FOUND:
-			debug_str("EV_BEACON_FOUND\r\n");
 			break;
 		case EV_BEACON_MISSED:
-			debug_str("EV_BEACON_MISSED\r\n");
 			break;
 		case EV_BEACON_TRACKED:
-			debug_str("EV_BEACON_TRACKED\r\n");
 			break;
 		case EV_RFU1:
-			debug_str("EV_RFU1\r\n");
 			break;
 		case EV_REJOIN_FAILED:
-			debug_str("EV_REJOIN_FAILED\r\n");
 			break;
 		case EV_TXCOMPLETE:
-			debug_str("EV_TXCOMPLETE (includes waiting for RX windows)\r\n");
-			if (LMIC.txrxFlags & TXRX_ACK)
-				debug_str("Received ack\r\n");
-			if (LMIC.dataLen) {
-				debug_valdec("Received bytes of payload\r\n:",LMIC.dataLen);
-				debug_val("Data = :",LMIC.frame[LMIC.dataBeg]);
-				debug_led(LMIC.frame[LMIC.dataBeg]);
-//				debug_str("Received ");
-//				debug_str(LMIC.dataLen);
-//				debug_str(" bytes of payload\r\n");
-			}
 			break;
 		case EV_LOST_TSYNC:
-			debug_str("EV_LOST_TSYNC\r\n");
 			break;
 		case EV_RESET:
-			debug_str("EV_RESET\r\n");
 			break;
 		case EV_RXCOMPLETE:
-			// data received in ping slot
-			debug_str("EV_RXCOMPLETE\r\n");
 			break;
 		case EV_LINK_DEAD:
-			debug_str("EV_LINK_DEAD\r\n");
 			break;
 		case EV_LINK_ALIVE:
-			debug_str("EV_LINK_ALIVE\r\n");
 			break;
 		default:
-			debug_str("Unknown event\r\n");
 			break;
 	}
 }
@@ -257,18 +199,16 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI3_Init();
   MX_TIM7_Init();
-  MX_USART1_UART_Init();
   MX_TIM6_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6); //demarrage du timer 6 en interruption toutes les secondes pour la mesure temperature
   HAL_TIM_Base_Start_IT(&htim7);   // <----------- change to your setup
   __HAL_SPI_ENABLE(&hspi3);        // <----------- change to your setup
+
   osjob_t initjob;
   // initialize runtime env
   os_init();
-  // initialize debug library
-  debug_init();
   // setup initial job
   os_setCallback(&initjob, initfunc);
 //  os_setCallback(&hellojob, hellofunc);

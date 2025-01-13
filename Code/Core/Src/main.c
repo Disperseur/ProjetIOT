@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "i2c.h"
 #include "spi.h"
 #include "tim.h"
 #include "gpio.h"
@@ -27,6 +28,10 @@
 /* USER CODE BEGIN Includes */
 #include "oslmic.h"
 #include "lmic.h"
+
+// librairie BME680
+#include <bme680/bme68x_necessary_functions.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -36,7 +41,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define TEMP_OFFSET 0//10000 //deg*1000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -105,7 +109,7 @@ static osjob_t reportjob;
 // report sensor value every minute
 static void reportfunc (osjob_t* j) {
 	// read sensor
-	int val = readsensor_temp() - TEMP_OFFSET;
+	int val = readsensor_temp();
 
 	// prepare and schedule data for transmission
 	val = val / 100; //temperature en 10e de degres
@@ -201,6 +205,7 @@ int main(void)
   MX_TIM7_Init();
   MX_TIM6_Init();
   MX_ADC1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6); //demarrage du timer 6 en interruption toutes les secondes pour la mesure temperature
   HAL_TIM_Base_Start_IT(&htim7);   // <----------- change to your setup
