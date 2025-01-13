@@ -19,9 +19,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "i2c.h"
 #include "spi.h"
 #include "tim.h"
-#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -108,17 +108,34 @@ int readsensor_temp(){
 static osjob_t reportjob;
 // report sensor value every minute
 static void reportfunc (osjob_t* j) {
-	// read sensor
-	int val = readsensor_temp() - TEMP_OFFSET;
-	debug_valdec("val = ", val);
+//	// read  temperature sensor
+//	int val = readsensor_temp() - TEMP_OFFSET;
+//	debug_valdec("val = ", val);
+//
+//	// prepare and schedule data for transmission
+//	val = val / 100; //temperature en 10e de degres
+//	LMIC.frame[0] = 0;
+//	LMIC.frame[1] = 0x67; //adresse capteur
+//
+//	LMIC.frame[2] = val >> 8; //valeur capteur
+//	LMIC.frame[3] = val;
+//
+//	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
+//	// reschedule job in 60 seconds
+
+
+
+
+
+	// read humidity BME680 sensor
+	uint8_t val = 0;
+
+	uint8_t init_cmd[] = {};
+	HAL_I2C_Master_Transmit(&hi2c1, 0x25<<1, pData, Size, Timeout); //adress en MSB
 
 	// prepare and schedule data for transmission
 	val = val / 100; //temperature en 10e de degres
-	LMIC.frame[0] = 0;
-	LMIC.frame[1] = 0x67; //adresse capteur
-
-	LMIC.frame[2] = val >> 8; //valeur capteur
-	LMIC.frame[3] = val;
+	LMIC.frame[0] = val;
 
 	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
 	// reschedule job in 60 seconds
@@ -263,9 +280,9 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI3_Init();
   MX_TIM7_Init();
-  MX_USART1_UART_Init();
   MX_TIM6_Init();
   MX_ADC1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6); //demarrage du timer 6 en interruption toutes les secondes pour la mesure temperature
   HAL_TIM_Base_Start_IT(&htim7);   // <----------- change to your setup

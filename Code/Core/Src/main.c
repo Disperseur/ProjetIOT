@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "i2c.h"
 #include "spi.h"
 #include "tim.h"
 #include "gpio.h"
@@ -28,8 +29,14 @@
 #include "debug.h"
 #include "oslmic.h"
 #include "lmic.h"
-#include <stdio.h>
-#include <stdint.h>
+
+// includes pour le zmod
+#include "zmod4xxx.h"
+#include "zmod4xxx_cleaning.h"
+#include "zmod4410_config_iaq2.h"
+#include "zmod4510_config_no2_o3.h"
+#include "iaq_2nd_gen.h"
+//#include <bme680/bme68x_necessary_functions.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -62,6 +69,15 @@ static const u1_t DEVKEY[16] = {0xB3, 0x4C, 0xBD, 0xE6, 0x25, 0xE6, 0xE2, 0x74, 
 volatile int raw_adc1_in15 = 0;
 volatile float temp = 0;
 
+// data pour le zmod
+/* ZMOD4410 specific declarations */
+static zmod4xxx_dev_t dev;
+static uint8_t adc_result[ZMOD4410_ADC_DATA_LEN];
+static uint8_t prod_data[ZMOD4410_PROD_DATA_LEN];
+
+
+//struct bme68x_data data;
+
 //APPEUI,DEVEUI must be copied from thethingsnetwork application datas in LSB format
 //-----------------------------------------------------------------------------------------
 /* USER CODE END PV */
@@ -69,6 +85,8 @@ volatile float temp = 0;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+
+int  detect_and_configure(zmod4xxx_dev_t*, int, char const**);
 
 /* USER CODE END PFP */
 
@@ -87,8 +105,21 @@ void os_getDevKey (u1_t* buf) {
 	memcpy(buf, DEVKEY, 16);
 }
 void initsensor(){
+	// alimentation et init du capteur de temperature
 	HAL_GPIO_WritePin(Alim_temp_GPIO_Port, Alim_temp_Pin, GPIO_PIN_SET); //alimente le capteur de temperature
 	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+
+	// init du BME680
+	/* BME680 API forced mode test */
+	/* ZMOD4410 data structure initialization */
+	dev.i2c_addr = ZMOD4410_I2C_ADDR;
+	dev.pid = ZMOD4410_PID;
+	dev.init_conf = &zmod_iaq2_sensor_cfg[INIT];
+	dev.meas_conf = &zmod_iaq2_sensor_cfg[MEASUREMENT];
+	dev.prod_data = prod_data;
+
+	zmod4xxx_init_sensor(&dev);
+	zmod4xxx_init_measurement(&dev);
 }
 
 void initfunc (osjob_t* j) {
@@ -99,6 +130,7 @@ void initfunc (osjob_t* j) {
 	// start joining
 	LMIC_startJoining();
 	// init done - onEvent() callback will be invoked...
+
 }
 int readsensor_temp(){
 	return  (188686 - 147 * raw_adc1_in15);
@@ -107,19 +139,51 @@ int readsensor_temp(){
 static osjob_t reportjob;
 // report sensor value every minute
 static void reportfunc (osjob_t* j) {
-	// read sensor
-	int val = readsensor_temp() - TEMP_OFFSET;
-	debug_valdec("val = ", val);
+//	// read  temperature sensor
+//	int val = readsensor_temp() - TEMP_OFFSET;
+//	debug_valdec("val = ", val);
+//
+//	// prepare and schedule data for transmission
+//	val = val / 100; //temperature en 10e de degres
+//	LMIC.frame[0] = 0;
+//	LMIC.frame[1] = 0x67; //adresse capteur
+//
+//	LMIC.frame[2] = val >> 8; //valeur capteur
+//	LMIC.frame[3] = val;
+//
+//	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
+//	// reschedule job in 60 seconds
+//	os_setTimedCallback(j, os_getTime()+sec2osticks(15), reportfunc);
 
+
+
+//
+//	// read BME680 sensor
+//	if (bme68x_single_measure(&data) == 0) {
+//
+//		// Measurement is successful, so continue with IAQ
+//		data.iaq_score = bme68x_iaq(); // Calculate IAQ
+//
+//		HAL_Delay(2000);
+//	}
+//
+//	int val = (int)(data.humidity);
+//	// prepare and schedule data for transmission
+//	val = val / 100; //temperature en 10e de degres
+//	LMIC.frame[0] = val;
+//	LMIC_setTxData2(1, LMIC.frame, 1, 0); // (port 1, 2 bytes, unconfirmed)
+//	// reschedule job in 60 seconds
+//	os_setTimedCallback(j, os_getTime()+sec2osticks(15), reportfunc);
+
+
+	// mesure MOx du zmod
+	zmod4xxx_read_adc_result(&dev, adc_result);
+
+	int val = (int)(adc_result[0]);
 	// prepare and schedule data for transmission
 	val = val / 100; //temperature en 10e de degres
-	LMIC.frame[0] = 0;
-	LMIC.frame[1] = 0x67; //adresse capteur
-
-	LMIC.frame[2] = val >> 8; //valeur capteur
-	LMIC.frame[3] = val;
-
-	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
+	LMIC.frame[0] = val;
+	LMIC_setTxData2(1, LMIC.frame, 1, 0); // (port 1, 2 bytes, unconfirmed)
 	// reschedule job in 60 seconds
 	os_setTimedCallback(j, os_getTime()+sec2osticks(15), reportfunc);
 }
@@ -264,6 +328,7 @@ int main(void)
   MX_TIM7_Init();
   MX_TIM6_Init();
   MX_ADC1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6); //demarrage du timer 6 en interruption toutes les secondes pour la mesure temperature
   HAL_TIM_Base_Start_IT(&htim7);   // <----------- change to your setup
@@ -357,6 +422,13 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
 	raw_adc1_in15 = HAL_ADC_GetValue(&hadc1);
 }
+
+
+
+
+
+
+
 /* USER CODE END 4 */
 
 /**
