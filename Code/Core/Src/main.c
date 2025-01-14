@@ -158,9 +158,10 @@ static void reportfunc (osjob_t* j) {
 	// avec cayenne
 	cayenne_lpp_reset(&cayenne_packet);
 
-	cayenne_lpp_add_temperature(&cayenne_packet, 1, data.temperature);
-	//cayenne_lpp_add_barometric_pressure(&cayenne_packet, 4, data.pressure);
-	//cayenne_lpp_add_relative_humidity(&cayenne_packet, 7, data.humidity);
+	cayenne_lpp_add_temperature(&cayenne_packet, 0, data.temperature);
+	cayenne_lpp_add_relative_humidity(&cayenne_packet, 0, data.humidity);
+	//cayenne_lpp_add_barometric_pressure(&cayenne_packet, 1, data.pressure);
+
 	//cayenne_lpp_add_analog_input(&cayenne_packet, 3, data.gas_index);
 
 	LMIC_setTxData2(1, cayenne_packet.buffer, sizeof(cayenne_packet), 0);
@@ -270,7 +271,6 @@ int main(void)
 
 
   // test BME
-  err_code = bme68x_single_measure(&data);
   if (bme68x_single_measure(&data) == 0) {
 
 	// Measurement is successful, so continue with IAQ
