@@ -28,7 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include "oslmic.h"
 #include "lmic.h"
-
+#include "cayenne_lpp.h"
 // librairie BME680
 #include <bme680/bme68x_necessary_functions.h>
 
@@ -62,6 +62,8 @@ static const u1_t DEVKEY[16] = {0xB3, 0x4C, 0xBD, 0xE6, 0x25, 0xE6, 0xE2, 0x74, 
 
 volatile int raw_adc1_in15 = 0;
 volatile float temp = 0;
+
+cayenne_lpp_t cayenne_packet;
 
 // BME680 data
 struct bme68x_data data;
@@ -140,16 +142,29 @@ static void reportfunc (osjob_t* j) {
 	}
 
 
-	uint16_t val = (int)(data.temperature);
+	// sans cayenne
+//	uint16_t val = (int)(data.temperature);
+//
+//	// prepare and schedule data for transmission
+//	LMIC.frame[0] = 0;
+//	LMIC.frame[1] = 0x67; //adresse capteur
+//
+//	LMIC.frame[2] = val << 8; //valeur capteur
+//	LMIC.frame[3] = val;
 
-	// prepare and schedule data for transmission
-	LMIC.frame[0] = 0;
-	LMIC.frame[1] = 0x67; //adresse capteur
+//	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
 
-	LMIC.frame[2] = val << 8; //valeur capteur
-	LMIC.frame[3] = val;
 
-	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
+	// avec cayenne
+	cayenne_lpp_reset(&cayenne_packet);
+
+	cayenne_lpp_add_temperature(&cayenne_packet, 1, data.temperature);
+	//cayenne_lpp_add_barometric_pressure(&cayenne_packet, 4, data.pressure);
+	//cayenne_lpp_add_relative_humidity(&cayenne_packet, 7, data.humidity);
+	//cayenne_lpp_add_analog_input(&cayenne_packet, 3, data.gas_index);
+
+	LMIC_setTxData2(1, cayenne_packet.buffer, sizeof(cayenne_packet), 0);
+
 	// reschedule job in 60 seconds
 	os_setTimedCallback(j, os_getTime()+sec2osticks(15), reportfunc);
 }
