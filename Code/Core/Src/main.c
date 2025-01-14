@@ -114,23 +114,6 @@ int readsensor_temp(){
 static osjob_t reportjob;
 // report sensor value every minute
 static void reportfunc (osjob_t* j) {
-	// temp sensor
-//	int val = readsensor_temp();
-//
-//	// prepare and schedule data for transmission
-//	val = val / 100; //temperature en 10e de degres
-//	LMIC.frame[0] = 0;
-//	LMIC.frame[1] = 0x67; //adresse capteur
-//
-//	LMIC.frame[2] = val >> 8; //valeur capteur
-//	LMIC.frame[3] = val;
-//
-//	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
-//	// reschedule job in 60 seconds
-//	os_setTimedCallback(j, os_getTime()+sec2osticks(15), reportfunc);
-
-
-
 	// BME680
 
 	if (bme68x_single_measure(&data) == 0) {
@@ -142,29 +125,16 @@ static void reportfunc (osjob_t* j) {
 	}
 
 
-	// sans cayenne
-//	uint16_t val = (int)(data.temperature);
-//
-//	// prepare and schedule data for transmission
-//	LMIC.frame[0] = 0;
-//	LMIC.frame[1] = 0x67; //adresse capteur
-//
-//	LMIC.frame[2] = val << 8; //valeur capteur
-//	LMIC.frame[3] = val;
-
-//	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
-
-
-	// avec cayenne
 	cayenne_lpp_reset(&cayenne_packet);
 
 	cayenne_lpp_add_temperature(&cayenne_packet, 0, data.temperature);
-	cayenne_lpp_add_relative_humidity(&cayenne_packet, 0, data.humidity);
-	//cayenne_lpp_add_barometric_pressure(&cayenne_packet, 1, data.pressure);
+	cayenne_lpp_add_relative_humidity(&cayenne_packet, 1, data.humidity);
+	cayenne_lpp_add_barometric_pressure(&cayenne_packet, 2, data.pressure);
+	cayenne_lpp_add_analog_output(&cayenne_packet, 3, data.iaq_score);
+	cayenne_lpp_add_analog_output(&cayenne_packet, 4, (float)(data.gas_index));
+	cayenne_lpp_add_analog_output(&cayenne_packet, 5, data.gas_resistance);
 
-	//cayenne_lpp_add_analog_input(&cayenne_packet, 3, data.gas_index);
-
-	LMIC_setTxData2(1, cayenne_packet.buffer, sizeof(cayenne_packet), 0);
+	LMIC_setTxData2(1, cayenne_packet.buffer, sizeof(cayenne_packet.buffer), 0);
 
 	// reschedule job in 60 seconds
 	os_setTimedCallback(j, os_getTime()+sec2osticks(15), reportfunc);
@@ -270,14 +240,14 @@ int main(void)
   os_setCallback(&initjob, initfunc);
 
 
-  // test BME
-  if (bme68x_single_measure(&data) == 0) {
-
-	// Measurement is successful, so continue with IAQ
-	data.iaq_score = bme68x_iaq(); // Calculate IAQ
-
-	HAL_Delay(2000);
-  }
+//  // test BME
+//  if (bme68x_single_measure(&data) == 0) {
+//
+//	// Measurement is successful, so continue with IAQ
+//	data.iaq_score = bme68x_iaq(); // Calculate IAQ
+//
+//	HAL_Delay(2000);
+//  }
 
 
 
