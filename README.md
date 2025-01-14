@@ -20,3 +20,9 @@ Token: Token1
 email: hugo.celarie@etu.emse.fr
 mdp: IOT-Pojet-AC_hc_2024
 lien doc mise en place: https://docs.datacake.de/integrations/webhook
+
+
+
+## TODO
+
+* Ajouter un delay apres le i2c init

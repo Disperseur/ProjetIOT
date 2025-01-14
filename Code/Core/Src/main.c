@@ -63,6 +63,10 @@ static const u1_t DEVKEY[16] = {0xB3, 0x4C, 0xBD, 0xE6, 0x25, 0xE6, 0xE2, 0x74, 
 volatile int raw_adc1_in15 = 0;
 volatile float temp = 0;
 
+// BME680 data
+struct bme68x_data data;
+volatile int err_code = 0;
+
 //APPEUI,DEVEUI must be copied from thethingsnetwork application datas in LSB format
 //-----------------------------------------------------------------------------------------
 /* USER CODE END PV */
@@ -108,15 +112,41 @@ int readsensor_temp(){
 static osjob_t reportjob;
 // report sensor value every minute
 static void reportfunc (osjob_t* j) {
-	// read sensor
-	int val = readsensor_temp();
+	// temp sensor
+//	int val = readsensor_temp();
+//
+//	// prepare and schedule data for transmission
+//	val = val / 100; //temperature en 10e de degres
+//	LMIC.frame[0] = 0;
+//	LMIC.frame[1] = 0x67; //adresse capteur
+//
+//	LMIC.frame[2] = val >> 8; //valeur capteur
+//	LMIC.frame[3] = val;
+//
+//	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
+//	// reschedule job in 60 seconds
+//	os_setTimedCallback(j, os_getTime()+sec2osticks(15), reportfunc);
+
+
+
+	// BME680
+
+	if (bme68x_single_measure(&data) == 0) {
+
+		// Measurement is successful, so continue with IAQ
+		data.iaq_score = bme68x_iaq(); // Calculate IAQ
+
+		HAL_Delay(2000);
+	}
+
+
+	uint16_t val = (int)(data.temperature);
 
 	// prepare and schedule data for transmission
-	val = val / 100; //temperature en 10e de degres
 	LMIC.frame[0] = 0;
 	LMIC.frame[1] = 0x67; //adresse capteur
 
-	LMIC.frame[2] = val >> 8; //valeur capteur
+	LMIC.frame[2] = val << 8; //valeur capteur
 	LMIC.frame[3] = val;
 
 	LMIC_setTxData2(1, LMIC.frame, 4, 0); // (port 1, 2 bytes, unconfirmed)
@@ -207,6 +237,12 @@ int main(void)
   MX_ADC1_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+
+  /* BME680 API forced mode test */
+  bme68x_start(&data, &hi2c1);
+
+
+
   HAL_TIM_Base_Start_IT(&htim6); //demarrage du timer 6 en interruption toutes les secondes pour la mesure temperature
   HAL_TIM_Base_Start_IT(&htim7);   // <----------- change to your setup
   __HAL_SPI_ENABLE(&hspi3);        // <----------- change to your setup
@@ -216,7 +252,20 @@ int main(void)
   os_init();
   // setup initial job
   os_setCallback(&initjob, initfunc);
-//  os_setCallback(&hellojob, hellofunc);
+
+
+  // test BME
+  err_code = bme68x_single_measure(&data);
+  if (bme68x_single_measure(&data) == 0) {
+
+	// Measurement is successful, so continue with IAQ
+	data.iaq_score = bme68x_iaq(); // Calculate IAQ
+
+	HAL_Delay(2000);
+  }
+
+
+
   // execute scheduled jobs and events
   os_runloop();
   // (not reached)
