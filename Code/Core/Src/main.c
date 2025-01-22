@@ -129,7 +129,7 @@ static void reportfunc (osjob_t* j) {
 
 	cayenne_lpp_add_temperature(&cayenne_packet, 0, data.temperature);
 	cayenne_lpp_add_relative_humidity(&cayenne_packet, 1, data.humidity);
-	cayenne_lpp_add_barometric_pressure(&cayenne_packet, 2, data.pressure);
+	cayenne_lpp_add_barometric_pressure(&cayenne_packet, 2, data.pressure/100);
 	cayenne_lpp_add_analog_output(&cayenne_packet, 3, data.iaq_score);
 	cayenne_lpp_add_analog_output(&cayenne_packet, 4, (float)(data.gas_index));
 	cayenne_lpp_add_analog_output(&cayenne_packet, 5, data.gas_resistance);
